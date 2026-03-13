@@ -8,7 +8,7 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 
 # --- 1. CONFIGURACIÓN ---
-URL_BASE = "https://tu-nueva-app.streamlit.app/" 
+URL_BASE = "https://certificado.streamlit.app/" 
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
 X_QR, Y_QR, TAM_QR = 690, 425, 100
 
@@ -106,3 +106,4 @@ if df is not None:
             st.download_button("⬇️ DESCARGAR CERTIFICADO OFICIAL (PDF)", data=archivo_pdf, file_name=f"Certificado_{dni_input}.pdf")
         else:
             st.error("DNI no registrado.")
+
