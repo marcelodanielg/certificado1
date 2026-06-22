@@ -10,7 +10,7 @@ from reportlab.lib.utils import ImageReader
 # --- 1. CONFIGURACIÓN ---
 URL_BASE = "https://certificado.streamlit.app/" 
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
-X_QR, Y_QR, TAM_QR = 690, 425, 100
+X_QR, Y_QR, TAM_QR = 690, 425, 70  # Reducido de 100 a 70 para que el QR sea más chico
 
 st.set_page_config(page_title="Acreditación", layout="centered")
 
@@ -27,7 +27,11 @@ st.markdown("""
 @st.cache_data
 def cargar_datos():
     if os.path.exists("asistentes.xlsx"):
-        return pd.read_excel("asistentes.xlsx", dtype={'DNI': str})
+        df = pd.read_excel("asistentes.xlsx")
+        if 'DNI' in df.columns:
+            df = df.dropna(subset=['DNI'])
+            df['DNI'] = df['DNI'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+        return df
     return None
 
 df = cargar_datos()
@@ -37,7 +41,6 @@ def generar_imagen_previa(nombre, dni):
     img = Image.open("plantilla.png").convert("RGB")
     draw = ImageDraw.Draw(img)
     
-    # Intentar cargar una fuente para la imagen (PIL usa fuentes .ttf)
     try:
         font = ImageFont.truetype("Arial.ttf", TAM_LETRA + 10)
     except:
@@ -76,7 +79,7 @@ def generar_pdf(nombre, dni):
 # --- LÓGICA DE VALIDACIÓN (QR) ---
 query = st.query_params
 if "v" in query:
-    dni_v = query["v"]
+    dni_v = query["v"].strip()
     if df is not None:
         user = df[df['DNI'] == dni_v]
         if not user.empty:
@@ -92,18 +95,18 @@ if df is not None:
     dni_input = st.text_input("DNI:", placeholder="Ingrese su documento")
     
     if dni_input:
-        res = df[df['DNI'] == dni_input.strip()]
+        dni_limpio = dni_input.strip()
+        res = df[df['DNI'] == dni_limpio]
         if not res.empty:
             nombre_doc = res.iloc[0]['Nombre']
             
             # 1. Generar y mostrar la VISTA PREVIA real
             with st.spinner("Cargando vista previa..."):
-                img_previa = generar_imagen_previa(nombre_doc, dni_input.strip())
-                st.image(img_previa, caption="Vista previa de su certificado", use_container_width=True)
+                img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
+                st.image(img_previa, caption="Vista previa de su constancia de asistencia", use_container_width=True)
             
-            # 2. Botón de descarga del PDF (que ya funciona bien)
-            archivo_pdf = generar_pdf(nombre_doc, dni_input.strip())
-            st.download_button("⬇️ DESCARGAR CERTIFICADO OFICIAL (PDF)", data=archivo_pdf, file_name=f"Certificado_{dni_input}.pdf")
+            # 2. Botón de descarga del PDF
+            archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
+            st.download_button("⬇️ DESCARGAR CONSTANCIA DE ASISTENCIA OFICIAL (PDF)", data=archivo_pdf, file_name=f"Constancia_{dni_limpio}.pdf")
         else:
             st.error("DNI no registrado.")
-
