@@ -10,7 +10,7 @@ from reportlab.lib.utils import ImageReader
 # --- 1. CONFIGURACIÓN ---
 URL_BASE = "https://certificado.streamlit.app/" 
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
-X_QR, Y_QR, TAM_QR = 690, 425, 70  # Reducido de 100 a 70 para que el QR sea más chico
+X_QR, Y_QR, TAM_QR = 690, 425, 70  # QR más chico
 
 st.set_page_config(page_title="Acreditación", layout="centered")
 
@@ -30,13 +30,14 @@ def cargar_datos():
         df = pd.read_excel("asistentes.xlsx")
         if 'DNI' in df.columns:
             df = df.dropna(subset=['DNI'])
-            df['DNI'] = df['DNI'].astype(str).str.replace(r'\.0$', '', regex=True).str.strip()
+            # LIMPIEZA NUCLEAR: Quita el .0 si es decimal, y luego borra todo lo que NO sea un número (puntos, guiones, espacios)
+            df['DNI'] = df['DNI'].astype(str).str.replace(r'\.0$', '', regex=True).str.replace(r'\D', '', regex=True)
         return df
     return None
 
 df = cargar_datos()
 
-# NUEVA FUNCIÓN: Crea una imagen para mostrar en la web
+# FUNCIÓN: Crea una imagen para mostrar en la web
 def generar_imagen_previa(nombre, dni):
     img = Image.open("plantilla.png").convert("RGB")
     draw = ImageDraw.Draw(img)
@@ -79,7 +80,7 @@ def generar_pdf(nombre, dni):
 # --- LÓGICA DE VALIDACIÓN (QR) ---
 query = st.query_params
 if "v" in query:
-    dni_v = query["v"].strip()
+    dni_v = query["v"].strip().replace(".", "").replace("-", "") # Limpieza al escanear
     if df is not None:
         user = df[df['DNI'] == dni_v]
         if not user.empty:
@@ -95,18 +96,26 @@ if df is not None:
     dni_input = st.text_input("DNI:", placeholder="Ingrese su documento")
     
     if dni_input:
-        dni_limpio = dni_input.strip()
+        # Limpiamos el texto ingresado quitando puntos, espacios o guiones
+        dni_limpio = "".join(filter(str.isdigit, dni_input))
+        
         res = df[df['DNI'] == dni_limpio]
         if not res.empty:
             nombre_doc = res.iloc[0]['Nombre']
             
-            # 1. Generar y mostrar la VISTA PREVIA real
             with st.spinner("Cargando vista previa..."):
                 img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
                 st.image(img_previa, caption="Vista previa de su constancia de asistencia", use_container_width=True)
             
-            # 2. Botón de descarga del PDF
             archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
             st.download_button("⬇️ DESCARGAR CONSTANCIA DE ASISTENCIA OFICIAL (PDF)", data=archivo_pdf, file_name=f"Constancia_{dni_limpio}.pdf")
         else:
             st.error("DNI no registrado.")
+            
+            # 🔍 INSPECTOR DE DIAGNÓSTICO (Solo aparece si no encuentra el DNI)
+            st.info("🛠️ **Inspector de datos interno:**")
+            st.write(f"Buscaste el número limpio: `{dni_limpio}`")
+            st.write("Columnas detectadas en tu Excel:", df.columns.tolist())
+            st.write("Primeros 5 DNI registrados en el archivo actualmente:", df['DNI'].head(5).tolist())
+else:
+    st.warning("No se encontró el archivo 'asistentes.xlsx' en el repositorio.")
