@@ -10,7 +10,7 @@ from reportlab.lib.utils import ImageReader
 # --- 1. CONFIGURACIÓN ---
 URL_BASE = "https://certificado.streamlit.app/" 
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
-X_QR, Y_QR, TAM_QR = 690, 425, 70  # QR más chico
+X_QR, Y_QR, TAM_QR = 690, 425, 70  # QR chico para Constancia
 
 st.set_page_config(page_title="Acreditación", layout="centered")
 
@@ -28,10 +28,26 @@ st.markdown("""
 def cargar_datos():
     if os.path.exists("asistentes.xlsx"):
         df = pd.read_excel("asistentes.xlsx")
-        if 'DNI' in df.columns:
+        
+        # Limpiamos espacios rebeldes en los nombres de los encabezados
+        df.columns = df.columns.str.strip()
+        
+        if 'Nombre' in df.columns and 'DNI' in df.columns:
+            # 🔍 DETECCIÓN AUTOMÁTICA DE INVERSIÓN:
+            # Si la columna 'DNI' contiene letras (texto), significa que el Excel vino al revés.
+            muestra_dni = df['DNI'].dropna().astype(str)
+            if muestra_dni.str.contains(r'[a-zA-ZñÑ]').any():
+                # Damos vuelta las columnas en memoria de forma transparente
+                df = df.rename(columns={'Nombre': 'DNI_temporal', 'DNI': 'Nombre'})
+                df = df.rename(columns={'DNI_temporal': 'DNI'})
+            
+            # Eliminamos filas donde el DNI esté vacío
             df = df.dropna(subset=['DNI'])
-            # LIMPIEZA NUCLEAR: Quita el .0 si es decimal, y luego borra todo lo que NO sea un número (puntos, guiones, espacios)
+            
+            # Limpieza estricta del DNI (le quitamos el .0 si es float y dejamos solo números enteros)
             df['DNI'] = df['DNI'].astype(str).str.replace(r'\.0$', '', regex=True).str.replace(r'\D', '', regex=True)
+            df['Nombre'] = df['Nombre'].astype(str).str.strip()
+            
         return df
     return None
 
@@ -80,7 +96,7 @@ def generar_pdf(nombre, dni):
 # --- LÓGICA DE VALIDACIÓN (QR) ---
 query = st.query_params
 if "v" in query:
-    dni_v = query["v"].strip().replace(".", "").replace("-", "") # Limpieza al escanear
+    dni_v = query["v"].strip().replace(".", "").replace("-", "")
     if df is not None:
         user = df[df['DNI'] == dni_v]
         if not user.empty:
@@ -96,7 +112,7 @@ if df is not None:
     dni_input = st.text_input("DNI:", placeholder="Ingrese su documento")
     
     if dni_input:
-        # Limpiamos el texto ingresado quitando puntos, espacios o guiones
+        # Dejamos solo números del input del usuario
         dni_limpio = "".join(filter(str.isdigit, dni_input))
         
         res = df[df['DNI'] == dni_limpio]
@@ -111,11 +127,5 @@ if df is not None:
             st.download_button("⬇️ DESCARGAR CONSTANCIA DE ASISTENCIA OFICIAL (PDF)", data=archivo_pdf, file_name=f"Constancia_{dni_limpio}.pdf")
         else:
             st.error("DNI no registrado.")
-            
-            # 🔍 INSPECTOR DE DIAGNÓSTICO (Solo aparece si no encuentra el DNI)
-            st.info("🛠️ **Inspector de datos interno:**")
-            st.write(f"Buscaste el número limpio: `{dni_limpio}`")
-            st.write("Columnas detectadas en tu Excel:", df.columns.tolist())
-            st.write("Primeros 5 DNI registrados en el archivo actualmente:", df['DNI'].head(5).tolist())
 else:
     st.warning("No se encontró el archivo 'asistentes.xlsx' en el repositorio.")
