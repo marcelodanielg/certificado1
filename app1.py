@@ -9,7 +9,7 @@ from reportlab.lib.utils import ImageReader
 
 # --- 1. CONFIGURACIÓN ---
 URL_BASE = "https://certificado.streamlit.app/" 
-X_TEXTO, Y_TEXTO, TAM_LETRA = 330, 240, 20
+X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 270, 20
 X_QR, Y_QR, TAM_QR = 690, 425, 70  # QR chico para Constancia
 
 st.set_page_config(page_title="Acreditación", layout="centered")
