@@ -68,11 +68,11 @@ def generar_imagen_previa(nombre, dni):
     draw.text((X_TEXTO, Y_TEXTO), texto, fill="black", anchor="mm")
     
     # Dibujar QR en la imagen
-    # qr = qrcode.make(f"{URL_BASE}?v={dni}")
-   # qr_img = qr.resize((TAM_QR, TAM_QR))
-   # img.paste(qr_img, (X_QR, Y_QR))
+     qr = qrcode.make(f"{URL_BASE}?v={dni}")
+    qr_img = qr.resize((TAM_QR, TAM_QR))
+    img.paste(qr_img, (X_QR, Y_QR))
     
-   # return img
+   return img
 
 def generar_pdf(nombre, dni):
     buffer = io.BytesIO()
