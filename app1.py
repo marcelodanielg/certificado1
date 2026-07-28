@@ -4,7 +4,6 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 from reportlab.pdfgen import canvas
 import streamlit as st
-import streamlit.components.v1 as components
 
 # --- 1. CONFIGURACIÓN ---
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
@@ -15,7 +14,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# CSS: Estética sobria, responsive para pantallas móviles y botones estilizados
+# CSS: Habilita interacción táctil de zoom y ajusta diseño
 st.markdown(
     """
     <style>
@@ -79,6 +78,17 @@ st.markdown(
         line-height: 1.5;
     }
 
+    .tarjeta-aviso-cierre {
+        background-color: #e8f5e9;
+        border: 1px solid #c8e6c9;
+        color: #1b5e20;
+        padding: 15px;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 20px;
+        font-size: 15px;
+    }
+
     /* Botón de Descarga */
     .stDownloadButton>button {
         background-color: #1b4965 !important;
@@ -97,12 +107,13 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* Imagen optimizada a pantalla completa de móvil */
+    /* Imagen responsiva con zoom táctil habilitado */
     .stImage img {
         border-radius: 10px;
         box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.15);
         width: 100% !important;
         height: auto !important;
+        touch-action: manipulation; /* Optimiza gestos táctiles */
     }
     </style>
     """,
@@ -179,27 +190,27 @@ if "descargado" not in st.session_state:
     st.session_state.descargado = False
 
 
-# --- VISTA POST-DESCARGA (Solo Certificado + Botón Cerrar) ---
+# --- VISTA POST-DESCARGA (Solo Certificado Táctil + Mensaje Informativo) ---
 if st.session_state.descargado:
     if "img_previa" in st.session_state:
-        # Muestra la imagen en tamaño grande adaptada a la pantalla
+        # Permitir pinch-to-zoom en celulares
+        st.markdown(
+            '<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">',
+            unsafe_allow_html=True,
+        )
+
+        # Muestra la imagen (se puede ampliar con dos dedos en la pantalla del celular)
         st.image(st.session_state.img_previa, use_container_width=True)
 
-        st.write("")  # Espaciado
-
-        # Botón para cerrar la pestaña
-        if st.button("🔴 CERRAR VENTANA", use_container_width=True):
-            components.html(
-                """
-                <script>
-                    window.close();
-                    if (!window.closed) {
-                        alert("La descarga se realizó con éxito. Ya puede cerrar esta pestaña desde el navegador.");
-                    }
-                </script>
+        st.markdown(
+            """
+            <div class='tarjeta-aviso-cierre'>
+                ✅ <b>Descarga completada con éxito.</b><br>
+                El archivo ha sido guardado. Puede ampliar la imagen con los dedos o cerrar la pestaña desde su navegador.
+            </div>
             """,
-                height=0,
-            )
+            unsafe_allow_html=True,
+        )
 
 # --- VISTA INICIAL Y FORMULARIO DE DESCARGA ---
 else:
