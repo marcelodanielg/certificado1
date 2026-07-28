@@ -4,6 +4,7 @@ import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 from reportlab.pdfgen import canvas
 import streamlit as st
+import streamlit.components.v1 as components
 
 # --- 1. CONFIGURACIÓN ---
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
@@ -14,7 +15,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# CSS: Estética institucional, responsive para celulares y tarjetas visuales
+# CSS: Estética sobria, responsive para pantallas móviles y botones estilizados
 st.markdown(
     """
     <style>
@@ -22,7 +23,7 @@ st.markdown(
     #stDecoration {display:none;}
     .stApp { background-color: #f4f6f9; }
     
-    /* Encabezado Principal Estilizado */
+    /* Encabezado Principal */
     .header-container {
         text-align: center;
         padding: 20px 10px;
@@ -44,7 +45,7 @@ st.markdown(
         opacity: 0.9;
     }
 
-    /* Tarjeta de Bienvenida / Instrucciones */
+    /* Tarjetas Informativas */
     .tarjeta-bienvenida {
         background-color: #ffffff;
         border-radius: 10px;
@@ -66,7 +67,6 @@ st.markdown(
         line-height: 1.6;
     }
 
-    /* Tarjetas Informativas */
     .tarjeta-info {
         background-color: #ffffff;
         border-left: 5px solid #1b4965;
@@ -77,17 +77,6 @@ st.markdown(
         color: #2c3e50;
         font-size: 15px;
         line-height: 1.5;
-    }
-
-    .tarjeta-cierre {
-        background-color: #e8f5e9;
-        border: 1px solid #c8e6c9;
-        color: #1b5e20;
-        padding: 20px;
-        border-radius: 8px;
-        text-align: center;
-        margin-top: 20px;
-        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
     }
 
     /* Botón de Descarga */
@@ -108,11 +97,11 @@ st.markdown(
         color: #ffffff !important;
     }
 
-    /* Ajuste de imagen para pantallas de celulares */
+    /* Imagen optimizada a pantalla completa de móvil */
     .stImage img {
-        border-radius: 8px;
-        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.12);
-        max-width: 100% !important;
+        border-radius: 10px;
+        box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.15);
+        width: 100% !important;
         height: auto !important;
     }
     </style>
@@ -185,63 +174,91 @@ def generar_pdf(nombre, dni):
     return buffer
 
 
-# --- ENCABEZADO INSTITUCIONAL ---
-st.markdown(
-    """
-    <div class='header-container'>
-        <h1>📜 Constancia de Asistencia</h1>
-        <p>Sistema Digital de Emisión de Comprobantes</p>
-    </div>
-    """,
-    unsafe_allow_html=True,
-)
-
+# --- ESTADO DE SESIÓN ---
 if "descargado" not in st.session_state:
     st.session_state.descargado = False
 
-if df is not None:
-    # Tarjeta decorativa de inicio
+
+# --- VISTA POST-DESCARGA (Solo Certificado + Botón Cerrar) ---
+if st.session_state.descargado:
+    if "img_previa" in st.session_state:
+        # Muestra la imagen en tamaño grande adaptada a la pantalla
+        st.image(st.session_state.img_previa, use_container_width=True)
+
+        st.write("")  # Espaciado
+
+        # Botón para cerrar la pestaña
+        if st.button("🔴 CERRAR VENTANA", use_container_width=True):
+            components.html(
+                """
+                <script>
+                    window.close();
+                    if (!window.closed) {
+                        alert("La descarga se realizó con éxito. Ya puede cerrar esta pestaña desde el navegador.");
+                    }
+                </script>
+            """,
+                height=0,
+            )
+
+# --- VISTA INICIAL Y FORMULARIO DE DESCARGA ---
+else:
     st.markdown(
         """
-        <div class='tarjeta-bienvenida'>
-            <h4>Bienvenido/a</h4>
-            <p style='margin:0; font-size:14px; color:#555;'>
-                Para obtener su documento oficial en formato PDF, siga estos sencillos pasos:
-            </p>
-            <ol class='pasos-lista'>
-                <li>Ingrese su número de DNI (sin puntos ni espacios).</li>
-                <li>Verifique sus datos en pantalla.</li>
-                <li>Presione el botón de descarga.</li>
-            </ol>
+        <div class='header-container'>
+            <h1>📜 Constancia de Asistencia</h1>
+            <p>Sistema Digital de Emisión de Comprobantes</p>
         </div>
         """,
         unsafe_allow_html=True,
     )
 
-    dni_input = st.text_input("Ingrese su número de DNI:", placeholder="Ej: 25123456")
+    if df is not None:
+        st.markdown(
+            """
+            <div class='tarjeta-bienvenida'>
+                <h4>Bienvenido/a</h4>
+                <p style='margin:0; font-size:14px; color:#555;'>
+                    Para obtener su documento oficial en formato PDF, siga estos sencillos pasos:
+                </p>
+                <ol class='pasos-lista'>
+                    <li>Ingrese su número de DNI (sin puntos ni espacios).</li>
+                    <li>Verifique sus datos en pantalla.</li>
+                    <li>Presione el botón de descarga.</li>
+                </ol>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
 
-    if dni_input:
-        dni_limpio = "".join(filter(str.isdigit, dni_input))
+        dni_input = st.text_input(
+            "Ingrese su número de DNI:", placeholder="Ej: 25123456"
+        )
 
-        res = df[df["DNI"] == dni_limpio]
-        if not res.empty:
-            nombre_doc = res.iloc[0]["Nombre"]
+        if dni_input:
+            dni_limpio = "".join(filter(str.isdigit, dni_input))
 
-            with st.spinner("Generando comprobante..."):
-                archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
-                img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
+            res = df[df["DNI"] == dni_limpio]
+            if not res.empty:
+                nombre_doc = res.iloc[0]["Nombre"]
 
-            # PASO 1: ANTES DE DESCARGAR
-            if not st.session_state.descargado:
+                with st.spinner("Generando comprobante..."):
+                    archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
+                    img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
+
                 st.markdown(
                     f"""
                     <div class='tarjeta-info'>
                         <b>Docente:</b> {nombre_doc}<br>
-                        Su comprobante oficial se encuentra listo. Presione el botón a continuación para descargar el archivo en formato PDF:
+                        Su comprobante oficial se encuentra listo. Presione el botón a continuación para obtener su PDF:
                     </div>
                 """,
                     unsafe_allow_html=True,
                 )
+
+                def registrar_descarga():
+                    st.session_state.descargado = True
+                    st.session_state.img_previa = img_previa
 
                 st.download_button(
                     "📥 DESCARGAR DOCUMENTO (PDF)",
@@ -249,33 +266,12 @@ if df is not None:
                     file_name=f"Constancia_{dni_limpio}.pdf",
                     mime="application/pdf",
                     use_container_width=True,
-                    on_click=lambda: st.session_state.update(
-                        {"descargado": True}
-                    ),
+                    on_click=registrar_descarga,
                 )
 
-            # PASO 2: UNA VEZ DESCARGADO (Muestra certificado adaptado + aviso de cierre)
             else:
-                # Muestra el documento adaptado a la pantalla del dispositivo
-                st.image(img_previa, use_container_width=True)
-
-                # Confirmación de cierre
-                st.markdown(
-                    """
-                    <div class='tarjeta-cierre'>
-                        <h3 style='margin:0 0 10px 0;'>✅ Descarga completada</h3>
-                        <p style='margin:0; font-size:16px;'>
-                            El archivo ha sido guardado correctamente en su dispositivo.<br>
-                            <b>Ya puede cerrar esta página de forma segura.</b>
-                        </p>
-                    </div>
-                """,
-                    unsafe_allow_html=True,
+                st.error(
+                    "El DNI ingresado no se encuentra registrado en la nómina de asistentes."
                 )
-
-        else:
-            st.error(
-                "El DNI ingresado no se encuentra registrado en la nómina de asistentes."
-            )
-else:
-    st.warning("No se encontró el archivo 'asistentes.xlsx' en el servidor.")
+    else:
+        st.warning("No se encontró el archivo 'asistentes.xlsx' en el servidor.")
