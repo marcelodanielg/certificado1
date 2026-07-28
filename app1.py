@@ -8,29 +8,70 @@ import streamlit as st
 # --- 1. CONFIGURACIÓN ---
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
 
-st.set_page_config(page_title="Constancia de Asistencia", layout="centered")
+st.set_page_config(
+    page_title="Constancia de Asistencia", 
+    page_icon="📜",
+    layout="centered"
+)
 
-# CSS: Estética limpia, refinada e institucional
+# CSS: Estética institucional, responsive para celulares y tarjetas visuales
 st.markdown(
     """
     <style>
     #MainMenu, footer, header, .stDeployButton {visibility: hidden;}
     #stDecoration {display:none;}
-    .stApp { background-color: #f8f9fa; }
+    .stApp { background-color: #f4f6f9; }
     
-    .titulo-principal {
+    /* Encabezado Principal Estilizado */
+    .header-container {
         text-align: center;
-        color: #1a252f;
+        padding: 20px 10px;
+        margin-bottom: 20px;
+        background: linear-gradient(135deg, #1b4965 0%, #2b5876 100%);
+        border-radius: 12px;
+        color: white;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.08);
+    }
+    .header-container h1 {
+        margin: 0;
+        font-size: 26px;
+        font-weight: 700;
         font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
-        font-weight: 600;
-        margin-bottom: 25px;
+    }
+    .header-container p {
+        margin-top: 8px;
+        font-size: 14px;
+        opacity: 0.9;
     }
 
+    /* Tarjeta de Bienvenida / Instrucciones */
+    .tarjeta-bienvenida {
+        background-color: #ffffff;
+        border-radius: 10px;
+        padding: 20px;
+        border: 1px solid #e0e0e0;
+        box-shadow: 0px 2px 8px rgba(0,0,0,0.04);
+        margin-bottom: 25px;
+    }
+    .tarjeta-bienvenida h4 {
+        margin-top: 0;
+        color: #1b4965;
+        font-size: 16px;
+    }
+    .pasos-lista {
+        margin: 10px 0 0 0;
+        padding-left: 20px;
+        color: #4a5568;
+        font-size: 14px;
+        line-height: 1.6;
+    }
+
+    /* Tarjetas Informativas */
     .tarjeta-info {
         background-color: #ffffff;
-        border-left: 4px solid #1b4965;
+        border-left: 5px solid #1b4965;
         padding: 18px 20px;
-        border-radius: 6px;
+        border-radius: 8px;
         box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
         margin-bottom: 20px;
         color: #2c3e50;
@@ -49,21 +90,30 @@ st.markdown(
         box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
     }
 
+    /* Botón de Descarga */
     .stDownloadButton>button {
         background-color: #1b4965 !important;
         color: #ffffff !important;
         font-size: 16px !important;
         font-weight: 600 !important;
-        padding: 14px 20px !important;
-        border-radius: 6px !important;
+        padding: 16px 20px !important;
+        border-radius: 8px !important;
         border: none !important;
         width: 100% !important;
         box-shadow: 0px 4px 10px rgba(27, 73, 101, 0.25) !important;
         transition: all 0.2s ease-in-out !important;
     }
     .stDownloadButton>button:hover {
-        background-color: #62b6cb !important;
+        background-color: #2b5876 !important;
         color: #ffffff !important;
+    }
+
+    /* Ajuste de imagen para pantallas de celulares */
+    .stImage img {
+        border-radius: 8px;
+        box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.12);
+        max-width: 100% !important;
+        height: auto !important;
     }
     </style>
     """,
@@ -135,9 +185,14 @@ def generar_pdf(nombre, dni):
     return buffer
 
 
-# --- INTERFAZ DE USUARIO ---
+# --- ENCABEZADO INSTITUCIONAL ---
 st.markdown(
-    "<h2 class='titulo-principal'>Constancia de Asistencia</h2>",
+    """
+    <div class='header-container'>
+        <h1>📜 Constancia de Asistencia</h1>
+        <p>Sistema Digital de Emisión de Comprobantes</p>
+    </div>
+    """,
     unsafe_allow_html=True,
 )
 
@@ -145,7 +200,25 @@ if "descargado" not in st.session_state:
     st.session_state.descargado = False
 
 if df is not None:
-    dni_input = st.text_input("Ingrese su DNI:", placeholder="Ej: 25123456")
+    # Tarjeta decorativa de inicio
+    st.markdown(
+        """
+        <div class='tarjeta-bienvenida'>
+            <h4>Bienvenido/a</h4>
+            <p style='margin:0; font-size:14px; color:#555;'>
+                Para obtener su documento oficial en formato PDF, siga estos sencillos pasos:
+            </p>
+            <ol class='pasos-lista'>
+                <li>Ingrese su número de DNI (sin puntos ni espacios).</li>
+                <li>Verifique sus datos en pantalla.</li>
+                <li>Presione el botón de descarga.</li>
+            </ol>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+
+    dni_input = st.text_input("Ingrese su número de DNI:", placeholder="Ej: 25123456")
 
     if dni_input:
         dni_limpio = "".join(filter(str.isdigit, dni_input))
@@ -154,17 +227,17 @@ if df is not None:
         if not res.empty:
             nombre_doc = res.iloc[0]["Nombre"]
 
-            with st.spinner("Generando documento..."):
+            with st.spinner("Generando comprobante..."):
                 archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
                 img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
 
-            # PASO 1: ANTES DE DESCARGAR (Tarjeta informativa + botón de descarga)
+            # PASO 1: ANTES DE DESCARGAR
             if not st.session_state.descargado:
                 st.markdown(
                     f"""
                     <div class='tarjeta-info'>
                         <b>Docente:</b> {nombre_doc}<br>
-                        Su comprobante de asistencia se encuentra listo. Presione el botón para obtener su documento en formato PDF:
+                        Su comprobante oficial se encuentra listo. Presione el botón a continuación para descargar el archivo en formato PDF:
                     </div>
                 """,
                     unsafe_allow_html=True,
@@ -181,12 +254,12 @@ if df is not None:
                     ),
                 )
 
-            # PASO 2: UNA VEZ DESCARGADO (Primero el certificado, luego la alerta de cierre)
+            # PASO 2: UNA VEZ DESCARGADO (Muestra certificado adaptado + aviso de cierre)
             else:
-                # 1° Muestra el certificado
+                # Muestra el documento adaptado a la pantalla del dispositivo
                 st.image(img_previa, use_container_width=True)
 
-                # 2° Muestra el aviso de descarga completada
+                # Confirmación de cierre
                 st.markdown(
                     """
                     <div class='tarjeta-cierre'>
