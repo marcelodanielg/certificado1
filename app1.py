@@ -9,47 +9,55 @@ import streamlit as st
 # --- 1. CONFIGURACIÓN ---
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
 
-st.set_page_config(page_title="Acreditación", layout="centered")
+st.set_page_config(page_title="Constancias de Asistencia", layout="centered")
 
-# CSS: Estilos para destacar el botón de descarga y llamadas de atención
+# CSS: Estética limpia, elegante e institucional
 st.markdown(
     """
     <style>
     #MainMenu, footer, header, .stDeployButton {visibility: hidden;}
     #stDecoration {display:none;}
-    .stApp { background-color: #ffffff; }
+    .stApp { background-color: #f8f9fa; }
     
-    /* Botón común */
-    .stButton>button { background-color: #000; color: #fff; border-radius: 4px; width: 100%; }
+    /* Titular Principal */
+    .titulo-principal {
+        text-align: center;
+        color: #1a252f;
+        font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif;
+        font-weight: 600;
+        margin-bottom: 25px;
+    }
 
-    /* ESTILO PARA EL BOTÓN DE DESCARGA PRINCIPAL (GIGANTE Y VERDE LLAMATIVO) */
+    /* Tarjeta Informativa Elegante */
+    .tarjeta-info {
+        background-color: #ffffff;
+        border-left: 4px solid #1b4965;
+        padding: 18px 20px;
+        border-radius: 6px;
+        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.05);
+        margin-bottom: 20px;
+        color: #2c3e50;
+        font-size: 15px;
+        line-height: 1.5;
+    }
+
+    /* Botón de Descarga Destacado e Institucional */
     .stDownloadButton>button {
-        background-color: #28a745 !important;
-        color: white !important;
-        font-size: 20px !important;
-        font-weight: bold !important;
-        padding: 18px 24px !important;
-        border-radius: 10px !important;
+        background-color: #1b4965 !important;
+        color: #ffffff !important;
+        font-size: 16px !important;
+        font-weight: 600 !important;
+        padding: 14px 20px !important;
+        border-radius: 6px !important;
         border: none !important;
         width: 100% !important;
-        box-shadow: 0px 4px 12px rgba(40, 167, 69, 0.4) !important;
-        transition: transform 0.2s ease-in-out !important;
+        box-shadow: 0px 4px 10px rgba(27, 73, 101, 0.25) !important;
+        transition: all 0.2s ease-in-out !important;
     }
     .stDownloadButton>button:hover {
-        transform: scale(1.02) !important;
-        background-color: #218838 !important;
-    }
-
-    /* BANNER DE INSTRUCCIONES */
-    .alerta-descarga {
-        background-color: #fff3cd;
-        color: #856404;
-        border: 2px solid #ffeeba;
-        padding: 15px;
-        border-radius: 8px;
-        text-align: center;
-        margin-bottom: 15px;
-        font-size: 16px;
+        background-color: #62b6cb !important;
+        color: #ffffff !important;
+        box-shadow: 0px 6px 14px rgba(27, 73, 101, 0.35) !important;
     }
     </style>
     """,
@@ -122,12 +130,12 @@ def generar_pdf(nombre, dni):
 
 # --- INTERFAZ DE USUARIO ---
 st.markdown(
-    "<h2 style='text-align: center;'>Portal de Acreditación</h2>",
+    "<h2 class='titulo-principal'>Constancias de Asistencia</h2>",
     unsafe_allow_html=True,
 )
 
 if df is not None:
-    dni_input = st.text_input("DNI:", placeholder="Ingrese su documento")
+    dni_input = st.text_input("Ingrese su DNI:", placeholder="Ej: 25123456")
 
     if dni_input:
         dni_limpio = "".join(filter(str.isdigit, dni_input))
@@ -136,27 +144,24 @@ if df is not None:
         if not res.empty:
             nombre_doc = res.iloc[0]["Nombre"]
 
-            with st.spinner("Generando certificado..."):
+            with st.spinner("Generando documento..."):
                 archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
                 img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
 
-            # --- MENSAJE Y BOTÓN DE ALTA VISIBILIDAD ---
-            st.success(f"¡Certificado encontrado a nombre de **{nombre_doc}**!")
-
-            # Cartel amarillo de instrucción explícita
+            # --- MENSAJE DE PRESENTACIÓN EFORMANTE Y PROFESIONAL ---
             st.markdown(
-                """
-                <div class='alerta-descarga'>
-                    👉 <b>¡PASO FINAL OBLIGATORIO!</b><br>
-                    Haga clic en el botón verde de abajo para guardar el certificado PDF en su teléfono o computadora.
+                f"""
+                <div class='tarjeta-info'>
+                    <b>Docente:</b> {nombre_doc}<br>
+                    Su <b>constancia de asistencia</b> se encuentra disponible. Puede descargar el documento oficial en formato PDF a continuación:
                 </div>
             """,
                 unsafe_allow_html=True,
             )
 
-            # Botón destacado en verde grande
+            # Botón elegante para la descarga
             st.download_button(
-                "📥 CLIC AQUÍ PARA DESCARGAR SU CERTIFICADO (PDF)",
+                "📥 DESCARGAR CONSTANCIA DE ASISTENCIA (PDF)",
                 data=archivo_pdf,
                 file_name=f"Constancia_{dni_limpio}.pdf",
                 mime="application/pdf",
@@ -168,6 +173,6 @@ if df is not None:
             st.image(img_previa, use_container_width=True)
 
         else:
-            st.error("DNI no registrado.")
+            st.error("El DNI ingresado no se encuentra registrado en la nómina de asistentes.")
 else:
-    st.warning("No se encontró el archivo 'asistentes.xlsx' en el repositorio.")
+    st.warning("No se encontró el archivo 'asistentes.xlsx' en el servidor.")
