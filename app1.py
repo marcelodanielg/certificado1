@@ -8,7 +8,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 
 # --- 1. CONFIGURACIÓN ---
-X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
+X_TEXTO, Y_TEXTO, TAM_LETRA = 350, 240, 30
 
 st.set_page_config(
     page_title="Constancia de Asistencia", 
