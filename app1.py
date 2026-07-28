@@ -45,7 +45,7 @@ st.markdown(
         padding: 20px;
         border-radius: 8px;
         text-align: center;
-        margin-bottom: 20px;
+        margin-top: 20px;
         box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
     }
 
@@ -158,7 +158,7 @@ if df is not None:
                 archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
                 img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
 
-            # PASO 1: ANTES DE DESCARGAR (Muestra tarjeta informativa + botón)
+            # PASO 1: ANTES DE DESCARGAR (Tarjeta informativa + botón de descarga)
             if not st.session_state.descargado:
                 st.markdown(
                     f"""
@@ -181,8 +181,12 @@ if df is not None:
                     ),
                 )
 
-            # PASO 2: UNA VEZ DESCARGADO (Oculta el botón y muestra el aviso de cierre + documento)
+            # PASO 2: UNA VEZ DESCARGADO (Primero el certificado, luego la alerta de cierre)
             else:
+                # 1° Muestra el certificado
+                st.image(img_previa, use_container_width=True)
+
+                # 2° Muestra el aviso de descarga completada
                 st.markdown(
                     """
                     <div class='tarjeta-cierre'>
@@ -195,10 +199,6 @@ if df is not None:
                 """,
                     unsafe_allow_html=True,
                 )
-
-                st.write("---")
-                st.caption("Documento generado:")
-                st.image(img_previa, use_container_width=True)
 
         else:
             st.error(
