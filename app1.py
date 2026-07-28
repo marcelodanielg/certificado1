@@ -164,7 +164,7 @@ if df is not None:
                     f"""
                     <div class='tarjeta-info'>
                         <b>Docente:</b> {nombre_doc}<br>
-                        Su comprobante oficial se encuentra listo. Presione el botón a continuación para obtener su documento en formato PDF:
+                        Su comprobante de asistencia se encuentra listo. Presione el botón para obtener su documento en formato PDF:
                     </div>
                 """,
                     unsafe_allow_html=True,
