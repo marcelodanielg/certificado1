@@ -3,7 +3,9 @@ import os
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
 from reportlab.pdfgen import canvas
+import base64
 import streamlit as st
+import streamlit.components.v1 as components
 
 # --- 1. CONFIGURACIÓN ---
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
@@ -14,7 +16,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# CSS: Diseño limpio e institucional
+# CSS: Diseño limpio
 st.markdown(
     """
     <style>
@@ -22,7 +24,6 @@ st.markdown(
     #stDecoration {display:none;}
     .stApp { background-color: #f4f6f9; }
     
-    /* Encabezado Principal */
     .header-container {
         text-align: center;
         padding: 20px 10px;
@@ -44,7 +45,6 @@ st.markdown(
         opacity: 0.9;
     }
 
-    /* Tarjetas Informativas */
     .tarjeta-bienvenida {
         background-color: #ffffff;
         border-radius: 10px;
@@ -85,11 +85,10 @@ st.markdown(
         padding: 15px;
         border-radius: 8px;
         text-align: center;
-        margin-top: 20px;
+        margin-top: 15px;
         font-size: 15px;
     }
 
-    /* Botón de Descarga */
     .stDownloadButton>button {
         background-color: #1b4965 !important;
         color: #ffffff !important;
@@ -176,19 +175,76 @@ def generar_pdf(nombre, dni):
     return buffer
 
 
+def mostrar_visor_interactivo(pil_image):
+    """Genera un componente HTML con Panzoom para zoom táctil fluido sin recargas de Streamlit"""
+    buffered = io.BytesIO()
+    pil_image.save(buffered, format="PNG")
+    img_b64 = base64.b64encode(buffered.getvalue()).decode()
+
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
+        <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+        <style>
+            body {{
+                margin: 0;
+                padding: 0;
+                background-color: transparent;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                overflow: hidden;
+            }}
+            .panzoom-container {{
+                width: 100%;
+                height: 480px;
+                border-radius: 10px;
+                overflow: hidden;
+                background: #e2e8f0;
+                touch-action: none;
+                box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
+                position: relative;
+            }}
+            #cert-img {{
+                width: 100%;
+                height: auto;
+                max-height: 100%;
+                object-fit: contain;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="panzoom-container">
+            <img id="cert-img" src="data:image/png;base64,{img_b64}" alt="Certificado">
+        </div>
+        <script>
+            const elem = document.getElementById('cert-img');
+            const panzoom = Panzoom(elem, {{
+                maxScale: 5,
+                minScale: 1,
+                contain: 'outside',
+                canvas: true
+            }});
+            elem.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
+        </script>
+    </body>
+    </html>
+    """
+    components.html(html_code, height=500)
+
+
 # --- ESTADO DE SESIÓN ---
 if "descargado" not in st.session_state:
     st.session_state.descargado = False
 
 
-# --- VISTA POST-DESCARGA (Certificado ampliable + mensaje de cierre) ---
+# --- VISTA POST-DESCARGA (Visor Interactivo Panzoom) ---
 if st.session_state.descargado:
     if "img_previa" in st.session_state:
-        # Se activa el expand sobre la imagen (al tocarla en celular abre el visor nativo para ampliar)
-        st.image(
-            st.session_state.img_previa, 
-            use_container_width=True
-        )
+        # Visor interactivo en HTML/JS puro
+        mostrar_visor_interactivo(st.session_state.img_previa)
 
         st.markdown(
             """
