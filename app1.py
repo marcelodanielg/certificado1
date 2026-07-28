@@ -14,7 +14,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# CSS: Habilita interacción táctil de zoom y ajusta diseño
+# CSS: Diseño limpio e institucional
 st.markdown(
     """
     <style>
@@ -106,15 +106,6 @@ st.markdown(
         background-color: #2b5876 !important;
         color: #ffffff !important;
     }
-
-    /* Imagen responsiva con zoom táctil habilitado */
-    .stImage img {
-        border-radius: 10px;
-        box-shadow: 0px 6px 18px rgba(0, 0, 0, 0.15);
-        width: 100% !important;
-        height: auto !important;
-        touch-action: manipulation; /* Optimiza gestos táctiles */
-    }
     </style>
     """,
     unsafe_allow_html=True,
@@ -190,23 +181,20 @@ if "descargado" not in st.session_state:
     st.session_state.descargado = False
 
 
-# --- VISTA POST-DESCARGA (Solo Certificado Táctil + Mensaje Informativo) ---
+# --- VISTA POST-DESCARGA (Certificado ampliable + mensaje de cierre) ---
 if st.session_state.descargado:
     if "img_previa" in st.session_state:
-        # Permitir pinch-to-zoom en celulares
-        st.markdown(
-            '<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">',
-            unsafe_allow_html=True,
+        # Se activa el expand sobre la imagen (al tocarla en celular abre el visor nativo para ampliar)
+        st.image(
+            st.session_state.img_previa, 
+            use_container_width=True
         )
-
-        # Muestra la imagen (se puede ampliar con dos dedos en la pantalla del celular)
-        st.image(st.session_state.img_previa, use_container_width=True)
 
         st.markdown(
             """
             <div class='tarjeta-aviso-cierre'>
                 ✅ <b>Descarga completada con éxito.</b><br>
-                El archivo ha sido guardado. Puede ampliar la imagen con los dedos o cerrar la pestaña desde su navegador.
+                El archivo ha sido guardado. Ya puede cerrar esta página desde el navegador.
             </div>
             """,
             unsafe_allow_html=True,
@@ -230,7 +218,7 @@ else:
             <div class='tarjeta-bienvenida'>
                 <h4>Bienvenido/a</h4>
                 <p style='margin:0; font-size:14px; color:#555;'>
-                    Para obtener su documento oficial en formato PDF, siga estos sencillos pasos:
+                    Para descargar su comprobante en formato PDF, siga estos pasos:
                 </p>
                 <ol class='pasos-lista'>
                     <li>Ingrese su número de DNI (sin puntos ni espacios).</li>
@@ -261,7 +249,7 @@ else:
                     f"""
                     <div class='tarjeta-info'>
                         <b>Docente:</b> {nombre_doc}<br>
-                        Su comprobante oficial se encuentra listo. Presione el botón a continuación para obtener su PDF:
+                        Su comprobante ya está listo. Presione el botón a continuación para obtener su PDF:
                     </div>
                 """,
                     unsafe_allow_html=True,
