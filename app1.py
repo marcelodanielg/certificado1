@@ -2,14 +2,14 @@ import io
 import os
 import pandas as pd
 from PIL import Image, ImageDraw, ImageFont
-from reportlab.lib.utils import ImageReader
 from reportlab.pdfgen import canvas
 import streamlit as st
 
 # --- 1. CONFIGURACIÓN ---
+# Coordenadas y tamaño para escribir el Nombre y DNI del asistente
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
 
-st.set_page_config(page_title="Constancias de Asistencia", layout="centered")
+st.set_page_config(page_title="Constancia de Asistencia", layout="centered")
 
 # CSS: Estética limpia, elegante e institucional
 st.markdown(
@@ -19,7 +19,6 @@ st.markdown(
     #stDecoration {display:none;}
     .stApp { background-color: #f8f9fa; }
     
-    /* Titular Principal */
     .titulo-principal {
         text-align: center;
         color: #1a252f;
@@ -28,7 +27,6 @@ st.markdown(
         margin-bottom: 25px;
     }
 
-    /* Tarjeta Informativa Elegante */
     .tarjeta-info {
         background-color: #ffffff;
         border-left: 4px solid #1b4965;
@@ -41,7 +39,6 @@ st.markdown(
         line-height: 1.5;
     }
 
-    /* Botón de Descarga Destacado e Institucional */
     .stDownloadButton>button {
         background-color: #1b4965 !important;
         color: #ffffff !important;
@@ -104,6 +101,7 @@ def generar_imagen_previa(nombre, dni):
     except Exception:
         font = ImageFont.load_default()
 
+    # Dibuja solo Nombre y DNI
     texto = f"{nombre.upper()} - DNI: {dni}"
     draw.text((X_TEXTO, Y_TEXTO), texto, fill="black", anchor="mm")
 
@@ -117,6 +115,8 @@ def generar_pdf(nombre, dni):
 
     c = canvas.Canvas(buffer, pagesize=(ancho, alto))
     c.drawImage("plantilla.png", 0, 0, width=ancho, height=alto)
+
+    # Dibuja solo Nombre y DNI
     c.setFont("Helvetica-Bold", TAM_LETRA)
     c.drawCentredString(
         X_TEXTO, alto - Y_TEXTO, f"{nombre.upper()} - DNI: {dni}"
@@ -130,7 +130,7 @@ def generar_pdf(nombre, dni):
 
 # --- INTERFAZ DE USUARIO ---
 st.markdown(
-    "<h2 class='titulo-principal'>Constancias de Asistencia</h2>",
+    "<h2 class='titulo-principal'>Constancia de Asistencia</h2>",
     unsafe_allow_html=True,
 )
 
@@ -148,20 +148,19 @@ if df is not None:
                 archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
                 img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
 
-            # --- MENSAJE DE PRESENTACIÓN EFORMANTE Y PROFESIONAL ---
+            # Presentación elegante y fluida
             st.markdown(
                 f"""
                 <div class='tarjeta-info'>
                     <b>Docente:</b> {nombre_doc}<br>
-                    Su <b>constancia de asistencia</b> se encuentra disponible. Puede descargar el documento oficial en formato PDF a continuación:
+                    Su comprobante oficial se encuentra listo. Puede obtenerlo en formato PDF a través del siguiente botón:
                 </div>
             """,
                 unsafe_allow_html=True,
             )
 
-            # Botón elegante para la descarga
             st.download_button(
-                "📥 DESCARGAR CONSTANCIA DE ASISTENCIA (PDF)",
+                "📥 DESCARGAR DOCUMENTO (PDF)",
                 data=archivo_pdf,
                 file_name=f"Constancia_{dni_limpio}.pdf",
                 mime="application/pdf",
@@ -169,7 +168,7 @@ if df is not None:
             )
 
             st.write("---")
-            st.caption("Vista previa del documento:")
+            st.caption("Vista previa:")
             st.image(img_previa, use_container_width=True)
 
         else:
