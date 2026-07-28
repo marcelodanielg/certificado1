@@ -6,12 +6,11 @@ from reportlab.pdfgen import canvas
 import streamlit as st
 
 # --- 1. CONFIGURACIÓN ---
-# Coordenadas y tamaño para escribir el Nombre y DNI del asistente
 X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
 
 st.set_page_config(page_title="Constancia de Asistencia", layout="centered")
 
-# CSS: Estética limpia, elegante e institucional
+# CSS: Estética limpia e institucional
 st.markdown(
     """
     <style>
@@ -54,7 +53,6 @@ st.markdown(
     .stDownloadButton>button:hover {
         background-color: #62b6cb !important;
         color: #ffffff !important;
-        box-shadow: 0px 6px 14px rgba(27, 73, 101, 0.35) !important;
     }
     </style>
     """,
@@ -101,7 +99,6 @@ def generar_imagen_previa(nombre, dni):
     except Exception:
         font = ImageFont.load_default()
 
-    # Dibuja solo Nombre y DNI
     texto = f"{nombre.upper()} - DNI: {dni}"
     draw.text((X_TEXTO, Y_TEXTO), texto, fill="black", anchor="mm")
 
@@ -116,7 +113,6 @@ def generar_pdf(nombre, dni):
     c = canvas.Canvas(buffer, pagesize=(ancho, alto))
     c.drawImage("plantilla.png", 0, 0, width=ancho, height=alto)
 
-    # Dibuja solo Nombre y DNI
     c.setFont("Helvetica-Bold", TAM_LETRA)
     c.drawCentredString(
         X_TEXTO, alto - Y_TEXTO, f"{nombre.upper()} - DNI: {dni}"
@@ -134,6 +130,10 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
+# Inicializamos estados para controlar las alertas y el cierre
+if "descargado" not in st.session_state:
+    st.session_state.descargado = False
+
 if df is not None:
     dni_input = st.text_input("Ingrese su DNI:", placeholder="Ej: 25123456")
 
@@ -148,30 +148,43 @@ if df is not None:
                 archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
                 img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
 
-            # Presentación elegante y fluida
+            # Tarjeta con datos del docente
             st.markdown(
                 f"""
                 <div class='tarjeta-info'>
                     <b>Docente:</b> {nombre_doc}<br>
-                    Su comprobante de asistencia se encuentra listo. Puede obtenerlo en formato PDF a través del siguiente botón:
+                    Su comprobante oficial se encuentra listo. Puede obtenerlo en formato PDF a través del siguiente botón:
                 </div>
             """,
                 unsafe_allow_html=True,
             )
 
-            st.download_button(
+            # Botón de Descarga
+            btn_descarga = st.download_button(
                 "📥 DESCARGAR DOCUMENTO (PDF)",
                 data=archivo_pdf,
                 file_name=f"Constancia_{dni_limpio}.pdf",
                 mime="application/pdf",
                 use_container_width=True,
+                on_click=lambda: st.session_state.update({"descargado": True}),
             )
+
+            # Si el usuario ya hizo clic en descargar, mostramos el aviso y el botón de salir
+            if st.session_state.descargado:
+                st.success("✅ ¡El archivo se ha descargado correctamente!")
+
+                # Botón para "cerrar" la consulta y limpiar pantalla
+                if st.button("🔴 Finalizar y Salir", use_container_width=True):
+                    st.session_state.descargado = False
+                    st.rerun()
 
             st.write("---")
             st.caption("Vista previa:")
             st.image(img_previa, use_container_width=True)
 
         else:
-            st.error("El DNI ingresado no se encuentra registrado en la nómina de asistentes.")
+            st.error(
+                "El DNI ingresado no se encuentra registrado en la nómina de asistentes."
+            )
 else:
     st.warning("No se encontró el archivo 'asistentes.xlsx' en el servidor.")
