@@ -16,7 +16,7 @@ st.set_page_config(
     layout="centered"
 )
 
-# CSS: Diseño limpio
+# CSS: Diseño limpio y resaltados
 st.markdown(
     """
     <style>
@@ -64,6 +64,34 @@ st.markdown(
         color: #4a5568;
         font-size: 14px;
         line-height: 1.6;
+    }
+
+    /* Resaltado para la etiqueta e input de DNI */
+    div[data-testid="stForm"] {
+        background-color: #ffffff;
+        padding: 20px;
+        border-radius: 10px;
+        border: 2px solid #1b4965;
+        box-shadow: 0px 4px 12px rgba(27, 73, 101, 0.1);
+        margin-bottom: 20px;
+    }
+    div[data-testid="stForm"] label {
+        font-size: 18px !important;
+        font-weight: bold !important;
+        color: #1b4965 !important;
+    }
+    div[data-testid="stForm"] input {
+        font-size: 18px !important;
+        padding: 10px !important;
+        border-radius: 6px !important;
+        border: 1px solid #cbd5e1 !important;
+    }
+    div[data-testid="stForm"] button {
+        background-color: #1b4965 !important;
+        color: white !important;
+        font-weight: bold !important;
+        border-radius: 6px !important;
+        margin-top: 10px;
     }
 
     .tarjeta-info {
@@ -176,7 +204,7 @@ def generar_pdf(nombre, dni):
 
 
 def mostrar_visor_interactivo(pil_image):
-    """Genera un componente HTML con Panzoom para zoom táctil fluido sin recargas de Streamlit"""
+    """Genera un componente HTML con Panzoom ajustado al alto de pantalla"""
     buffered = io.BytesIO()
     pil_image.save(buffered, format="PNG")
     img_b64 = base64.b64encode(buffered.getvalue()).decode()
@@ -199,17 +227,19 @@ def mostrar_visor_interactivo(pil_image):
             }}
             .panzoom-container {{
                 width: 100%;
-                height: 480px;
+                height: 360px;
                 border-radius: 10px;
                 overflow: hidden;
                 background: #e2e8f0;
                 touch-action: none;
                 box-shadow: 0px 4px 12px rgba(0, 0, 0, 0.15);
                 position: relative;
+                display: flex;
+                justify-content: center;
+                align-items: center;
             }}
             #cert-img {{
-                width: 100%;
-                height: auto;
+                max-width: 100%;
                 max-height: 100%;
                 object-fit: contain;
             }}
@@ -232,7 +262,7 @@ def mostrar_visor_interactivo(pil_image):
     </body>
     </html>
     """
-    components.html(html_code, height=500)
+    components.html(html_code, height=380)
 
 
 # --- ESTADO DE SESIÓN ---
@@ -286,11 +316,13 @@ else:
             unsafe_allow_html=True,
         )
 
-        dni_input = st.text_input(
-            "Ingrese su número de DNI:", placeholder="Ej: 25123456"
-        )
+        with st.form(key="form_dni"):
+            dni_input = st.text_input(
+                "Ingrese su número de DNI:", placeholder="Ej: 25123456"
+            )
+            submit_button = st.form_submit_button(label="Aceptar", use_container_width=True)
 
-        if dni_input:
+        if submit_button and dni_input:
             dni_limpio = "".join(filter(str.isdigit, dni_input))
 
             res = df[df["DNI"] == dni_limpio]
