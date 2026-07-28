@@ -10,7 +10,7 @@ X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 240, 20
 
 st.set_page_config(page_title="Constancia de Asistencia", layout="centered")
 
-# CSS: Estética limpia e institucional
+# CSS: Estética limpia, refinada e institucional
 st.markdown(
     """
     <style>
@@ -36,6 +36,17 @@ st.markdown(
         color: #2c3e50;
         font-size: 15px;
         line-height: 1.5;
+    }
+
+    .tarjeta-cierre {
+        background-color: #e8f5e9;
+        border: 1px solid #c8e6c9;
+        color: #1b5e20;
+        padding: 20px;
+        border-radius: 8px;
+        text-align: center;
+        margin-top: 20px;
+        box-shadow: 0px 2px 8px rgba(0, 0, 0, 0.04);
     }
 
     .stDownloadButton>button {
@@ -130,7 +141,6 @@ st.markdown(
     unsafe_allow_html=True,
 )
 
-# Inicializamos estados para controlar las alertas y el cierre
 if "descargado" not in st.session_state:
     st.session_state.descargado = False
 
@@ -148,39 +158,47 @@ if df is not None:
                 archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
                 img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
 
-            # Tarjeta con datos del docente
-            st.markdown(
-                f"""
-                <div class='tarjeta-info'>
-                    <b>Docente:</b> {nombre_doc}<br>
-                    Su comprobante oficial se encuentra listo. Puede obtenerlo en formato PDF a través del siguiente botón:
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            # Si todavía no descargó, mostramos el botón
+            if not st.session_state.descargado:
+                st.markdown(
+                    f"""
+                    <div class='tarjeta-info'>
+                        <b>Docente:</b> {nombre_doc}<br>
+                        Su comprobante oficial se encuentra listo. Puede obtenerlo en formato PDF a través del siguiente botón:
+                    </div>
+                """,
+                    unsafe_allow_html=True,
+                )
 
-            # Botón de Descarga
-            btn_descarga = st.download_button(
-                "📥 DESCARGAR DOCUMENTO (PDF)",
-                data=archivo_pdf,
-                file_name=f"Constancia_{dni_limpio}.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-                on_click=lambda: st.session_state.update({"descargado": True}),
-            )
+                st.download_button(
+                    "📥 DESCARGAR DOCUMENTO (PDF)",
+                    data=archivo_pdf,
+                    file_name=f"Constancia_{dni_limpio}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    on_click=lambda: st.session_state.update(
+                        {"descargado": True}
+                    ),
+                )
 
-            # Si el usuario ya hizo clic en descargar, mostramos el aviso y el botón de salir
-            if st.session_state.descargado:
-                st.success("✅ ¡El archivo se ha descargado correctamente!")
+                st.write("---")
+                st.caption("Vista previa:")
+                st.image(img_previa, use_container_width=True)
 
-                # Botón para "cerrar" la consulta y limpiar pantalla
-                if st.button("🔴 Finalizar y Salir", use_container_width=True):
-                    st.session_state.descargado = False
-                    st.rerun()
-
-            st.write("---")
-            st.caption("Vista previa:")
-            st.image(img_previa, use_container_width=True)
+            # Si ya hizo clic en descargar, mostramos el mensaje final de cierre
+            else:
+                st.markdown(
+                    """
+                    <div class='tarjeta-cierre'>
+                        <h3 style='margin:0 0 10px 0;'>✅ Descarga completada</h3>
+                        <p style='margin:0; font-size:16px;'>
+                            El documento ha sido guardado correctamente en su dispositivo.<br>
+                            <b>Ya puede cerrar esta ventana de forma segura.</b>
+                        </p>
+                    </div>
+                """,
+                    unsafe_allow_html=True,
+                )
 
         else:
             st.error(
