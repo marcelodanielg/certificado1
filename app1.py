@@ -158,31 +158,31 @@ if df is not None:
                 archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
                 img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
 
-            # Tarjeta de información inicial del docente
-            st.markdown(
-                f"""
-                <div class='tarjeta-info'>
-                    <b>Docente:</b> {nombre_doc}<br>
-                    Su comprobante oficial se encuentra listo. Presione el botón a continuación para obtener su documento en formato PDF:
-                </div>
-            """,
-                unsafe_allow_html=True,
-            )
+            # PASO 1: ANTES DE DESCARGAR (Muestra tarjeta informativa + botón)
+            if not st.session_state.descargado:
+                st.markdown(
+                    f"""
+                    <div class='tarjeta-info'>
+                        <b>Docente:</b> {nombre_doc}<br>
+                        Su comprobante oficial se encuentra listo. Presione el botón a continuación para obtener su documento en formato PDF:
+                    </div>
+                """,
+                    unsafe_allow_html=True,
+                )
 
-            # Botón de descarga siempre visible
-            st.download_button(
-                "📥 DESCARGAR DOCUMENTO (PDF)",
-                data=archivo_pdf,
-                file_name=f"Constancia_{dni_limpio}.pdf",
-                mime="application/pdf",
-                use_container_width=True,
-                on_click=lambda: st.session_state.update(
-                    {"descargado": True}
-                ),
-            )
+                st.download_button(
+                    "📥 DESCARGAR DOCUMENTO (PDF)",
+                    data=archivo_pdf,
+                    file_name=f"Constancia_{dni_limpio}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    on_click=lambda: st.session_state.update(
+                        {"descargado": True}
+                    ),
+                )
 
-            # UNA VEZ DESCARGADO: Muestra el aviso de cierre y recién ahí la vista previa
-            if st.session_state.descargado:
+            # PASO 2: UNA VEZ DESCARGADO (Oculta el botón y muestra el aviso de cierre + documento)
+            else:
                 st.markdown(
                     """
                     <div class='tarjeta-cierre'>
