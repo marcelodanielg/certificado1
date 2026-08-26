@@ -1,132 +1,336 @@
 import io
-import streamlit as st
-from reportlab.lib.pagesizes import A4, landscape
+import os
+import base64
+import pandas as pd
+from PIL import Image, ImageDraw, ImageFont
 from reportlab.pdfgen import canvas
-import qrcode
+import streamlit as st
+import streamlit.components.v1 as components
 
-# --- CONFIGURACIÓN DE PÁGINA ---
+# --- 1. CONFIGURACIÓN DE PÁGINA ---
+X_TEXTO, Y_TEXTO, TAM_LETRA = 300, 265, 20
+
 st.set_page_config(
-    page_title="Generador de Certificados",
-    page_icon="🎓",
-    layout="centered"
+    page_title="Constancia de Asistencia", 
+    page_icon="📜",
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
 
-# --- FUNCIÓN OPTIMIZADA PARA GENERAR PDF EN MEMORIA ---
-def generar_pdf_en_memoria(nombre_usuario, curso_nombre):
+# --- 2. CSS RESPONSIVE (PANTALLA COMPLETA Y AJUSTE DE CERTIFICADO) ---
+st.markdown(
     """
-    Genera un archivo PDF en memoria (BytesIO) optimizado para alto tráfico 
-    y descargas simultáneas masivas (+600 usuarios).
-    """
-    buffer = io.BytesIO()
-    # Crear el lienzo PDF sobre el buffer
-    c = canvas.Canvas(buffer, pagesize=landscape(A4))
-    width, height = landscape(A4)
-
-    # Diseño y Contenido del Certificado
-    c.setFont("Helvetica-Bold", 28)
-    c.drawCentredString(width / 2, height - 120, "CERTIFICADO DE ASISTENCIA")
-
-    c.setFont("Helvetica", 16)
-    c.drawCentredString(width / 2, height - 180, "Se otorga el presente certificado a:")
-
-    c.setFont("Helvetica-Bold", 24)
-    c.drawCentredString(width / 2, height - 230, nombre_usuario.upper())
-
-    c.setFont("Helvetica", 16)
-    c.drawCentredString(width / 2, height - 280, f"Por su participación en el curso / capacitación:")
-
-    c.setFont("Helvetica-Bold", 18)
-    c.drawCentredString(width / 2, height - 320, f'"{curso_nombre}"')
-
-    # Generación de Código QR de validación en memoria
-    qr_data = f"Certificado Valido: {nombre_usuario} - {curso_nombre}"
-    qr_img = qrcode.make(qr_data)
-    
-    qr_buffer = io.BytesIO()
-    qr_img.save(qr_buffer, format="PNG")
-    qr_buffer.seek(0)
-
-    # Insertar QR en el PDF
-    from reportlab.lib.utils import ImageReader
-    c.drawImage(ImageReader(qr_buffer), width - 150, 40, width=100, height=100)
-
-    # Finalizar y guardar el PDF en el buffer
-    c.showPage()
-    c.save()
-
-    buffer.seek(0)
-    return buffer.getvalue()
-
-# --- ESTILOS CSS PERSONALIZADOS (Aviso grande e destacado) ---
-st.markdown("""
     <style>
-    .aviso-descargas {
-        background-color: #d4edda;
-        color: #155724;
-        border: 2px solid #c3e6cb;
-        border-radius: 10px;
-        padding: 25px;
-        text-align: center;
-        font-size: 26px !important;
-        font-weight: bold;
-        margin-top: 20px;
-        margin-bottom: 25px;
-        box-shadow: 0px 4px 10px rgba(0,0,0,0.1);
+    /* Ocultar elementos secundarios de Streamlit */
+    #MainMenu, footer, header, .stDeployButton, #stDecoration { display: none !important; }
+    
+    /* Aprovechar mejor el ancho de la pantalla móvil */
+    .block-container {
+        padding-top: 1rem !important;
+        padding-bottom: 1rem !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
     }
-    .subtexto-descargas {
+    
+    .stApp { background-color: #f4f6f9; }
+
+    /* Encabezado */
+    .header-container {
+        text-align: center;
+        padding: 10px;
+        margin-bottom: 12px;
+        background: linear-gradient(135deg, #1b4965 0%, #2b5876 100%);
+        border-radius: 8px;
+        color: white;
+    }
+    .header-container h1 {
+        margin: 0;
         font-size: 20px;
-        color: #155724;
+        font-weight: 700;
+        font-family: system-ui, -apple-system, sans-serif;
+    }
+    .header-container p {
+        margin: 2px 0 0 0;
+        font-size: 12px;
+        opacity: 0.9;
+    }
+
+    /* Tarjeta de bienvenida */
+    .tarjeta-bienvenida {
+        background-color: #ffffff;
+        border-radius: 8px;
+        padding: 10px 14px;
+        border: 1px solid #e0e0e0;
+        margin-bottom: 12px;
+        font-size: 13px;
+    }
+    .pasos-lista {
+        margin: 4px 0 0 0;
+        padding-left: 18px;
+        color: #4a5568;
+        font-size: 12px;
+        line-height: 1.3;
+    }
+
+    /* Formulario */
+    div[data-testid="stForm"] {
+        background-color: #ffffff;
+        padding: 12px;
+        border-radius: 8px;
+        border: 2px solid #1b4965;
+        margin-bottom: 12px;
+    }
+    div[data-testid="stForm"] label {
+        font-size: 14px !important;
+        font-weight: bold !important;
+        color: #1b4965 !important;
+    }
+    div[data-testid="stForm"] input {
+        font-size: 16px !important;
+        padding: 8px !important;
+    }
+
+    /* Tarjeta de información */
+    .tarjeta-info {
+        background-color: #ffffff;
+        border-left: 4px solid #1b4965;
+        padding: 10px 12px;
+        border-radius: 6px;
+        margin-bottom: 12px;
+        color: #2c3e50;
+        font-size: 13px;
+    }
+
+    .tarjeta-aviso-cierre {
+        background-color: #e8f5e9;
+        border: 1px solid #c8e6c9;
+        color: #1b5e20;
+        padding: 10px;
+        border-radius: 6px;
+        text-align: center;
         margin-top: 10px;
-        font-weight: normal;
+        font-size: 13px;
+    }
+
+    /* Estilos de botones */
+    .stButton>button, .stDownloadButton>button {
+        background-color: #1b4965 !important;
+        color: #ffffff !important;
+        font-size: 15px !important;
+        font-weight: 700 !important;
+        padding: 12px !important;
+        border-radius: 6px !important;
+        border: none !important;
+        width: 100% !important;
     }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True,
+)
 
-# --- INTERFAZ DE USUARIO EN STREAMLIT ---
-st.title("🎓 Acreditación y Descarga de Certificado")
 
-# Control de estado de la sesión
+# --- 3. OPTIMIZACIÓN DE MEMORIA Y CACHÉ ---
+
+@st.cache_resource
+def obtener_plantilla_base():
+    """Carga la plantilla base una sola vez en memoria para máxima velocidad."""
+    if os.path.exists("plantilla.png"):
+        return Image.open("plantilla.png").convert("RGB")
+    return None
+
+@st.cache_data(ttl=3600)
+def cargar_datos():
+    """Carga el Excel en memoria caché."""
+    if os.path.exists("asistentes.xlsx"):
+        df = pd.read_excel("asistentes.xlsx")
+        df.columns = df.columns.str.strip()
+
+        if "Nombre" in df.columns and "DNI" in df.columns:
+            muestra_dni = df["DNI"].dropna().astype(str)
+            if muestra_dni.str.contains(r"[a-zA-ZñÑ]").any():
+                df = df.rename(columns={"Nombre": "DNI_temporal", "DNI": "Nombre"})
+                df = df.rename(columns={"DNI_temporal": "DNI"})
+
+            df = df.dropna(subset=["DNI"])
+            df["DNI"] = (
+                df["DNI"]
+                .astype(str)
+                .str.replace(r"\.0$", "", regex=True)
+                .str.replace(r"\D", "", regex=True)
+            )
+            df["Nombre"] = df["Nombre"].astype(str).str.strip()
+        return df
+    return None
+
+
+df = cargar_datos()
+plantilla_img = obtener_plantilla_base()
+
+
+def generar_imagen_previa(nombre, dni):
+    img = plantilla_img.copy()
+    draw = ImageDraw.Draw(img)
+
+    try:
+        font = ImageFont.truetype("Arial.ttf", TAM_LETRA + 10)
+    except Exception:
+        font = ImageFont.load_default()
+
+    texto = f"{nombre.upper()} - DNI: {dni}"
+    draw.text((X_TEXTO, Y_TEXTO), texto, fill="black", anchor="mm")
+    return img
+
+
+def generar_pdf(nombre, dni):
+    buffer = io.BytesIO()
+    ancho, alto = plantilla_img.size
+
+    c = canvas.Canvas(buffer, pagesize=(ancho, alto))
+    c.drawImage("plantilla.png", 0, 0, width=ancho, height=alto)
+    c.setFont("Helvetica-Bold", TAM_LETRA)
+    c.drawCentredString(X_TEXTO, alto - Y_TEXTO, f"{nombre.upper()} - DNI: {dni}")
+    c.showPage()
+    c.save()
+    buffer.seek(0)
+    return buffer
+
+
+def mostrar_visor_interactivo(pil_image):
+    """Genera la vista previa ajustada al ancho del dispositivo sin desbordarse."""
+    buffered = io.BytesIO()
+    pil_image.save(buffered, format="PNG")
+    img_b64 = base64.b64encode(buffered.getvalue()).decode()
+
+    html_code = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <script src="https://unpkg.com/@panzoom/panzoom@4.5.1/dist/panzoom.min.js"></script>
+        <style>
+            * {{ box-sizing: border-box; }}
+            body {{ margin: 0; padding: 0; background: transparent; overflow: hidden; }}
+            .panzoom-container {{
+                width: 100%;
+                max-width: 100%;
+                height: auto;
+                aspect-ratio: 4 / 3;
+                border-radius: 8px;
+                overflow: hidden;
+                background: #e2e8f0;
+                touch-action: none;
+                display: flex;
+                justify-content: center;
+                align-items: center;
+            }}
+            #cert-img {{
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+            }}
+        </style>
+    </head>
+    <body>
+        <div class="panzoom-container">
+            <img id="cert-img" src="data:image/png;base64,{img_b64}" alt="Certificado">
+        </div>
+        <script>
+            const elem = document.getElementById('cert-img');
+            const panzoom = Panzoom(elem, {{ maxScale: 4, minScale: 1, contain: 'outside' }});
+            elem.parentElement.addEventListener('wheel', panzoom.zoomWithWheel);
+        </script>
+    </body>
+    </html>
+    """
+    components.html(html_code, height=260)
+
+
+# --- 4. FLUJO DE NAVEGACIÓN ---
 if "descargado" not in st.session_state:
     st.session_state.descargado = False
 
-# Formulario de datos
-nombre = st.text_input("Ingrese su Nombre y Apellido completo:", placeholder="Ej: Marcelo Gómez")
-curso = st.text_input("Nombre de la Capacitación / Taller:", value="Capacitación Docente 2026")
+# VISTA POST-DESCARGA
+if st.session_state.descargado:
+    if "img_previa" in st.session_state:
+        mostrar_visor_interactivo(st.session_state.img_previa)
 
-if nombre:
-    # Generar el binario del PDF en memoria instantáneamente
-    pdf_bytes = generar_pdf_en_memoria(nombre, curso)
+    st.markdown(
+        """
+        <div class='tarjeta-aviso-cierre'>
+            ✅ <b>¡Descarga completada!</b><br>
+            El PDF se guardó en la carpeta <b>DESCARGAS</b> de su dispositivo.
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
+    if st.button("🔄 Emitir otro comprobante", use_container_width=True):
+        st.session_state.descargado = False
+        st.rerun()
 
-    st.markdown("---")
-    
-    # Botón de Descarga Optimizado para Alto Tráfico
-    boton_descarga = st.download_button(
-        label="📥 DESCARGAR CERTIFICADO EN PDF",
-        data=pdf_bytes,
-        file_name=f"Certificado_{nombre.replace(' ', '_')}.pdf",
-        mime="application/pdf",
-        key=f"dl_btn_{nombre}",  # Key dinámica para evitar duplicaciones de render
-        use_container_width=True
+# VISTA INICIAL (FORMULARIO)
+else:
+    st.markdown(
+        """
+        <div class='header-container'>
+            <h1>📜 Constancia de Asistencia</h1>
+            <p>Sistema Digital de Emisión de Comprobantes</p>
+        </div>
+        """,
+        unsafe_allow_html=True,
     )
 
-    if boton_descarga:
-        st.session_state.descargado = True
-
-    # Cartel destacado una vez iniciada la descarga
-    if st.session_state.descargado:
-        st.markdown("""
-            <div class="aviso-descargas">
-                ✅ ¡SU CERTIFICADO SE DESCARGÓ CON ÉXITO!
-                <div class="subtexto-descargas">
-                    Revise la carpeta 📂 <b>DESCARGAS</b> de su dispositivo (Celular o Computadora).
-                </div>
+    if df is not None and plantilla_img is not None:
+        st.markdown(
+            """
+            <div class='tarjeta-bienvenida'>
+                <b>Pasos rápidos:</b>
+                <ol class='pasos-lista'>
+                    <li>Ingrese su DNI sin puntos ni espacios.</li>
+                    <li>Verifique sus datos y presione Descargar PDF.</li>
+                </ol>
             </div>
-        """, unsafe_allow_html=True)
+            """,
+            unsafe_allow_html=True,
+        )
 
-        st.write("")
-        
-        # Opción de Salir en lugar de reimprimir
-        if st.button("🚪 Salir / Finalizar", use_container_width=True, type="secondary"):
-            st.session_state.clear()
-            st.success("Ha salido correctamente del sistema. Ya puede cerrar esta pestaña.")
-            st.rerun()
+        with st.form(key="form_dni"):
+            dni_input = st.text_input("Ingrese su DNI:", placeholder="Ej: 25123456")
+            submit_button = st.form_submit_button(label="🔍 Buscar Comprobante", use_container_width=True)
+
+        if submit_button and dni_input:
+            dni_limpio = "".join(filter(str.isdigit, dni_input))
+            res = df[df["DNI"] == dni_limpio]
+
+            if not res.empty:
+                nombre_doc = res.iloc[0]["Nombre"]
+                archivo_pdf = generar_pdf(nombre_doc, dni_limpio)
+                img_previa = generar_imagen_previa(nombre_doc, dni_limpio)
+
+                st.markdown(
+                    f"""
+                    <div class='tarjeta-info'>
+                        👤 <b>Docente:</b> {nombre_doc}<br>
+                        📋 <b>DNI:</b> {dni_limpio}
+                    </div>
+                    """,
+                    unsafe_allow_html=True,
+                )
+
+                def registrar_descarga():
+                    st.session_state.descargado = True
+                    st.session_state.img_previa = img_previa
+
+                st.download_button(
+                    "📥 DESCARGAR PDF AHORA",
+                    data=archivo_pdf,
+                    file_name=f"Constancia_{dni_limpio}.pdf",
+                    mime="application/pdf",
+                    use_container_width=True,
+                    on_click=registrar_descarga,
+                )
+
+            else:
+                st.error("El DNI no se encuentra registrado en la nómina.")
+    else:
+        st.warning("No se encontraron los archivos 'asistentes.xlsx' o 'plantilla.png'.")
