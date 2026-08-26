@@ -17,7 +17,7 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# --- 2. CSS RESPONSIVE (PANTALLA COMPLETA Y AJUSTE DE CERTIFICADO) ---
+# --- 2. CSS RESPONSIVE Y ESTILOS DESTACADOS ---
 st.markdown(
     """
     <style>
@@ -102,22 +102,32 @@ st.markdown(
         font-size: 13px;
     }
 
+    /* AVISO DE DESCARGA DESTACADO (MÁS GRANDE) */
     .tarjeta-aviso-cierre {
-        background-color: #e8f5e9;
-        border: 1px solid #c8e6c9;
-        color: #1b5e20;
-        padding: 10px;
-        border-radius: 6px;
+        background-color: #d4edda;
+        border: 2px solid #c3e6cb;
+        color: #155724;
+        padding: 20px;
+        border-radius: 10px;
         text-align: center;
-        margin-top: 10px;
-        font-size: 13px;
+        margin-top: 15px;
+        margin-bottom: 20px;
+        font-size: 22px !important;
+        font-weight: bold;
+        box-shadow: 0px 4px 10px rgba(0,0,0,0.08);
+    }
+    .subtexto-aviso {
+        font-size: 18px !important;
+        font-weight: normal;
+        margin-top: 8px;
+        color: #1b5e20;
     }
 
     /* Estilos de botones */
     .stButton>button, .stDownloadButton>button {
         background-color: #1b4965 !important;
         color: #ffffff !important;
-        font-size: 15px !important;
+        font-size: 16px !important;
         font-weight: 700 !important;
         padding: 12px !important;
         border-radius: 6px !important;
@@ -258,14 +268,19 @@ if st.session_state.descargado:
     st.markdown(
         """
         <div class='tarjeta-aviso-cierre'>
-            ✅ <b>¡Descarga completada!</b><br>
-            El PDF se guardó en la carpeta <b>DESCARGAS</b> de su dispositivo.
+            ✅ ¡DESCARGA COMPLETADA CON ÉXITO!
+            <div class='subtexto-aviso'>
+                El archivo PDF se ha guardado en la carpeta 📂 <b>DESCARGAS</b> de su dispositivo.
+            </div>
         </div>
         """,
         unsafe_allow_html=True,
     )
-    if st.button("🔄 Emitir otro comprobante", use_container_width=True):
-        st.session_state.descargado = False
+    
+    # Botón de Salir (Reemplaza la opción de emitir otro comprobante)
+    if st.button("🚪 Salir", use_container_width=True):
+        st.session_state.clear()
+        st.success("Sesión finalizada. Puede cerrar esta pestaña.")
         st.rerun()
 
 # VISTA INICIAL (FORMULARIO)
