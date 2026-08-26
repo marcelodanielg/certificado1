@@ -280,7 +280,7 @@ if st.session_state.descargado:
             """
             <div class='tarjeta-aviso-cierre'>
                 ✅ <b>Descarga completada con éxito.</b><br>
-                El archivo ha sido guardado. Ya puede cerrar esta página desde el navegador.
+                El archivo ha sido guardado en la carpeta DESCARGAS de su dispositivo. Ya puede cerrar esta página.
             </div>
             """,
             unsafe_allow_html=True,
